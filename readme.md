@@ -1,60 +1,60 @@
 # Reverse Engineered Nintendo Switch App REST API
 
-## Introduction
+## 介绍
 
-This is documentation of the REST APIs used for the Nintendo Switch app, and embedded Splatoon 2 web app. 
+这是用于Nintendo Switch应用程序及其内部Splatoon 2 Web应用程序的REST API的文档。
 
-All testing was done on an iPhone 7 running iOS 10.3.3 using version 1.0.4 of the Nintendo Switch app on 07/30/17. I reverse-engineered using [mitmproxy](https://mitmproxy.org). It was quite easy as the app does not use cert-pinning at all. I have not tested using the Android app at all, but I would assume that everything is identical (besides obvious user-agent differences). I am using a US account with the language set to English. There may be small differences for other regions.
+所有测试均在17/30/17上使用Nintendo Switch应用的1.0.4版本在运行iOS 10.3.3的iPhone 7上完成。我使用[mitmproxy](https://mitmproxy.org)对该应用进行了逆向工程。因为该应用程序没有使用证书固定，所以比较容易。我没有使用Android版的app进行过测试，但是我觉得应该没有什么差别（除了user-agent不一样）。我测试时使用的是一个语言设置为英语的美国帐户。使用其他地区的账户应该没有影响。
 
-A [Paw](https://paw.cloud) project is included for macOS users which should help tinkering with the API. I highly recommend trying this out first to figure out how the API works. Take a look at the environment variables to see what you need to fill in. Once you fill in `Client ID`, `Login Page Token Code`, `Login Page Token Code Verifier`, and `Birthday` you can execute the auth requests in order and you should be good to go.
+为macOS用户推荐一个叫[Paw](https://paw.cloud) 的软件，该项目应有助于调试API。我强烈建议您首先尝试一下以弄清楚API的工作原理。查看环境变量以查看需要填写的内容。填写“Client ID”，“Login Page Token Code”，“Login Page Token Code Verifier”和“Birthday”后，您可以执行身份验证请求为了秩序，你应该很好。
 
-Note: I recommend setting the `User-Agent` on all requests to the Splatoon 2 API to the following string to blend in. There doesn't appear to be any checking for this but better safe than sorry. `Mozilla/5.0 (iPhone; CPU iPhone OS 10_3_3 like Mac OS X) AppleWebKit/603.3.8 (KHTML, like Gecko) Mobile/14G60`
+Note：建议将Splatoon 2 API的所有请求的User-Agent设置为`Mozilla/5.0 (iPhone; CPU iPhone OS 10_3_3 like Mac OS X) AppleWebKit/603.3.8 (KHTML, like Gecko) Mobile/14G60`，虽然目前看来服务器并不对User-Agent做检测，但有备无患。
 
-## Blueprints
+## 蓝图
 * [Nintendo Account](NintendoAccountBlueprint.md)
 * [Nintendo Switch](SwitchBlueprint.md)
 * [Splatoon 2](Splatoon2Blueprint.md)
 
-## Open Source Components
+## 开源组件
 
-If you are curious about the open source components used in the app, I have compiled them [here](OpenSource.md).
+如果您对应用程序中使用的开源组件感到好奇，我在[这里](OpenSource.md)对其进行了介绍。
 
-## Authentication Steps
+## 验证步骤
 
-1. Visit authorization link in browser
+1.在浏览器中访问授权链接
 
-This page is an HTML page which loads the auth flow which you would normally see first when logging into the app. Follow through the flow by logging in with an account.
+该页面是一个HTML页面，其中加载了您在登录应用程序时通常通常会首先看到的身份验证流。通过使用帐户登录来进行验证流程。
 
 https://accounts.nintendo.com/connect/1.0.0/authorize?state=[state here]&redirect_uri=[... continues]
 
-I currently have no idea how this URL is generated. I recommend signing out of the Switch app, then sign back in and open the sign flow link in Safari. You can then open it on your computer and follow from there.
+我目前不知道如何生成此URL。我建议退出Switch应用程序，然后重新登录并在Safari中打开标志流链接。然后，您可以在计算机上打开它，然后从那里开始。
 
-Once you sign in, you will be redirected to a page like `npf71b963c1b7b6d119://auth#session_state=[SessionStateReturnedHere]&session_token_code=[codehere]&state=[StateReturnedHere]` 
+登录后，您将被重定向到类似`npf71b963c1b7b6d119://auth#session_state=[SessionStateReturnedHere]&session_token_code=[codehere]&state=[StateReturnedHere]` 
 
-2. Get a session token
+2.获取会话令牌
 
-Extract the session_state and state from that url, and request from [POST /connect/1.0.0/api/session_token](NintendoAccountBlueprint.md#GetSessionToken)
+从该网址中提取session_state和state，然后从 [POST /connect/1.0.0/api/session_token](NintendoAccountBlueprint.md#GetSessionToken)
 
-3. Get a service access token
+3.获取服务访问令牌
 
-Make a request to [POST /connect/1.0.0/api/token](NintendoAccountBlueprint.md#GetServiceToken) using `session_token` from 2.
+使用从第二步中获得的session_token来发送request[POST /connect/1.0.0/api/token](NintendoAccountBlueprint.md#GetServiceToken)
 
-4. Login to account
+4.登录账户
 
-Make a request to [POST /v1/Account/Login](SwitchBlueprint.md#LoginAccount). Use `id_token` from 3.
+使用从第三步中获得的id_token来发送request[POST /v1/Account/Login](SwitchBlueprint.md#LoginAccount)
 
-5. Get game list
+5.获取游戏列表
 
-Use your access token to retrieve the game list from [GET /v1/Game/ListWebServices](SwitchBlueprint.md#GetGameList). Use `webApiServerCredential["accesstoken"]` from 4. 
+使用从第四步中获取的accesstoken来获取游戏列表 [GET /v1/Game/ListWebServices](SwitchBlueprint.md#GetGameList)
 
-6. Get access token for Splatoon
+6.获取splatoon2的access token
 
-Make a request to [GET /v1/Game/GetWebServiceToken](SwitchBlueprint.md#GetGameWebServiceToken). Use the ID of Splatoon 2 from 5 and `webApiServerCredential["accesstoken"]` from 4.
+使用从第四步中获取的Splatoon 2的ID和第四步中的`webApiServerCredential["accesstoken"]` [GET /v1/Game/GetWebServiceToken](SwitchBlueprint.md#GetGameWebServiceToken)
 
-7. Get cookie to use for splatoon requests
+7.在splatoon的requests获取cookies
 
-Make a request to [GET /](Splatoon2Blueprint.md#GetHomepage). Use the `accessToken` from 6.
+使用从第六步中获取的accessToken发送request[GET /](Splatoon2Blueprint.md#GetHomepage)
 
-8. Play with the Splatoon 2 API
+8.使用Splatoon 2的API
 
-You can now make any request from the [Splatoon 2 API](Splatoon2Blueprint.md) using the cookie retrieved from 7. Have fun!
+现在你可以使用从第七步中获得cookies来发送任意的api请求了 [Splatoon 2 API](Splatoon2Blueprint.md)
